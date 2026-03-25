@@ -1,17 +1,22 @@
 {
-  "name": "GIP EEE Attendance",
+  "name": "GIP EEE FaceAttend",
   "short_name": "FaceAttend",
-  "description": "Gateway ICT Polytechnic — EEE Face Recognition Attendance System",
+  "description": "Gateway ICT Polytechnic EEE Attendance System",
   "start_url": "./index.html",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#1a56db",
+  "background_color": "#f8faff",
   "theme_color": "#1a56db",
+  "orientation": "portrait",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ],
-  "categories": ["education", "productivity"],
-  "screenshots": [],
-  "lang": "en-NG"
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
