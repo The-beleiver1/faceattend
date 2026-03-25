@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FaceAttend">
+<meta name="theme-color" content="#1a56db">
+<meta name="description" content="Gateway ICT Polytechnic EEE Face Recognition Attendance System">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>GIP EEE — Attendance</title>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f0f4ff; --surface:#fff; --surface2:#f7f9ff; --border:#dce4f5; --border2:#c8d5ef;
+  --primary:#1a56db; --pl:#e8efff; --pd:#1240a8;
+  --green:#0a8f5c; --gl:#e6f7f0; --gb:#a3d9bf;
+  --red:#c0392b; --rl:#fdf0ee; --rb:#f0b8b1;
+  --amber:#b45309; --al:#fffbeb; --ab:#fcd34d;
+  --text:#0f172a; --text2:#475569; --text3:#94a3b8;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(26,86,219,.06);
+  --shm:0 4px 20px rgba(0,0,0,.1),0 8px 32px rgba(26,86,219,.08);
+  --r:12px; --rs:8px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* INSTALL BANNER */
+#install-banner{
+  background:linear-gradient(135deg,var(--primary),var(--pd));
+  color:white; padding:10px 16px;
+  display:none; align-items:center; gap:10px;
+  flex-shrink:0;
+}
+#install-banner.show{display:flex;}
+.ib-text{flex:1;font-size:13px;font-weight:600;line-height:1.4;}
+.ib-text small{display:block;font-size:11px;opacity:.8;font-weight:400;}
+.ib-btn{background:white;color:var(--primary);border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;}
+.ib-close{background:none;border:none;color:rgba(255,255,255,.7);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;}
+
+/* LOADING */
+#loading-screen{
+  position:fixed;inset:0;z-index:999;
+  background:linear-gradient(135deg,#1a56db 0%,#1240a8 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;padding:24px;transition:opacity .5s;
+}
+.ld-icon{width:72px;height:72px;background:rgba(255,255,255,.15);border-radius:20px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.3);}
+.ld-icon svg{width:40px;height:40px;fill:white;}
+.ld-school{font-size:17px;font-weight:800;color:white;text-align:center;line-height:1.3;}
+.ld-dept{font-size:11px;color:rgba(255,255,255,.75);letter-spacing:.5px;text-align:center;}
+.ld-bar-w{width:min(280px,80vw);}
+.ld-track{height:5px;background:rgba(255,255,255,.2);border-radius:5px;overflow:hidden;}
+.ld-fill{height:100%;background:white;border-radius:5px;transition:width .4s ease;width:0%;}
+.ld-pct{font-family:'JetBrains Mono';font-size:11px;color:rgba(255,255,255,.8);text-align:center;margin-top:8px;}
+.ld-steps{display:flex;flex-direction:column;gap:5px;width:min(280px,80vw);}
+.ld-step{font-size:11px;color:rgba(255,255,255,.55);display:flex;align-items:center;gap:8px;}
+.ld-step.done{color:rgba(255,255,255,.95);}
+.ld-step.active{color:white;font-weight:700;}
+.ld-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.ld-step.active .ld-dot{animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* HEADER */
+header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  box-shadow:0 1px 8px rgba(0,0,0,.06);
+  padding:10px 14px;padding-top:calc(10px + var(--safe-top));
+  flex-shrink:0;
+}
+.hdr{display:flex;align-items:center;gap:10px;}
+.hdr-logo{width:38px;height:38px;flex-shrink:0;background:linear-gradient(135deg,var(--primary),var(--pd));border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.hdr-logo svg{width:22px;height:22px;fill:white;}
+.hdr-text{flex:1;min-width:0;}
+.hdr-school{font-size:13px;font-weight:800;color:var(--pd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+.hdr-dept{font-size:10px;color:var(--text2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sys-pill{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:10px;font-weight:700;color:var(--text2);flex-shrink:0;}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sdot.green{background:#22c55e;box-shadow:0 0 6px #22c55e;animation:blink 2s infinite;}
+.sdot.amber{background:#f59e0b;box-shadow:0 0 6px #f59e0b;animation:blink 1s infinite;}
+.sdot.red{background:#ef4444;}
+#clock{font-family:'JetBrains Mono';font-size:11px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:4px 8px;flex-shrink:0;}
+
+/* BODY SCROLL */
+.app-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+.app-body::-webkit-scrollbar{width:4px;}
+.app-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* SECTIONS */
+.section{padding:12px 14px;}
+.section+.section{padding-top:0;}
+
+/* PANEL HEADER */
+.pnl-hdr{display:flex;align-items:center;gap:7px;margin-bottom:10px;}
+.pnl-ttl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);}
+.cam-badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px;background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.cam-badge.live{background:var(--gl);color:var(--green);border-color:var(--gb);}
+
+/* CAM WRAP */
+.cam-wrap{border-radius:var(--r);overflow:hidden;position:relative;background:#e2e8f0;aspect-ratio:4/3;box-shadow:var(--sh);border:1px solid var(--border);margin-bottom:10px;}
+.cam-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);}
+.cam-ph-icon{width:52px;height:52px;background:var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.cam-ph-icon svg{width:26px;height:26px;fill:var(--text3);}
+.cam-ph p{font-size:12px;color:var(--text3);font-weight:600;}
+#video{width:100%;height:100%;object-fit:cover;display:none;}
+#overlay-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+.cam-info{position:absolute;bottom:7px;left:8px;right:8px;display:flex;justify-content:space-between;}
+.cam-info span{font-family:'JetBrains Mono';font-size:9px;color:rgba(255,255,255,.9);background:rgba(0,0,0,.4);padding:2px 7px;border-radius:4px;}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:8px;margin-bottom:10px;}
+.btn{flex:1;padding:13px 10px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;border:none;border-radius:var(--rs);cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-appearance:none;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn:active:not(:disabled){transform:scale(.97);}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--pd));color:white;box-shadow:0 2px 12px rgba(26,86,219,.3);}
+.btn-success{background:linear-gradient(135deg,#0a8f5c,#047857);color:white;box-shadow:0 2px 12px rgba(10,143,92,.3);}
+.btn-danger{background:linear-gradient(135deg,var(--red),#9b1c1c);color:white;}
+.btn-outline{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border2);}
+.btn-amber{background:linear-gradient(135deg,var(--amber),#92400e);color:white;}
+
+/* STATUS */
+.status-box{padding:10px 14px;border-radius:var(--rs);background:var(--surface2);border:1.5px solid var(--border);border-left:4px solid var(--border2);font-size:12px;font-weight:500;color:var(--text2);min-height:42px;line-height:1.5;transition:all .25s;margin-bottom:10px;}
+.status-box.ok{background:var(--gl);border-color:var(--gb);border-left-color:var(--green);color:var(--green);}
+.status-box.err{background:var(--rl);border-color:var(--rb);border-left-color:var(--red);color:var(--red);}
+.status-box.info{background:var(--pl);border-color:#b8ccf8;border-left-color:var(--primary);color:var(--primary);}
+.status-box.warn{background:var(--al);border-color:var(--ab);border-left-color:var(--amber);color:var(--amber);}
+
+/* CONFIDENCE */
+.conf-wrap{display:none;margin-bottom:10px;}
+.conf-wrap.show{display:block;}
+.conf-meta{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;}
+.conf-track{height:6px;background:var(--border);border-radius:6px;overflow:hidden;}
+.conf-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--green),#34d399);transition:width .5s ease;}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:4px 0 14px;}
+
+/* TABS */
+.tabs{display:flex;background:var(--surface);border-bottom:2px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:12px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text3);cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.tab:hover:not(.active){color:var(--text2);}
+
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.stat-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:14px;box-shadow:var(--sh);}
+.stat-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:6px;}
+.stat-val{font-size:28px;font-weight:800;line-height:1;}
+.c1 .stat-val{color:var(--primary);} .c2 .stat-val{color:var(--green);} .c3 .stat-val{color:var(--amber);} .c4 .stat-val{color:var(--red);}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:4px;font-weight:500;}
+
+/* TABLE */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sec-ttl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);}
+.tbl-wrap{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;min-width:480px;}
+.tbl th{text-align:left;padding:9px 12px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);background:var(--surface2);border-bottom:1px solid var(--border);}
+.tbl td{padding:11px 12px;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--pl);}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:9px;font-weight:800;letter-spacing:.5px;}
+.b-present{background:var(--gl);color:var(--green);border:1px solid var(--gb);}
+.b-late{background:var(--al);color:var(--amber);border:1px solid var(--ab);}
+.mono{font-family:'JetBrains Mono';font-size:11px;}
+
+/* ENROLL FORM */
+.form-row{margin-bottom:14px;}
+.form-lbl{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:6px;}
+.form-inp{width:100%;padding:12px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
+.form-inp:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,86,219,.1);background:white;}
+.form-inp::placeholder{color:var(--text3);}
+select.form-inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;cursor:pointer;}
+select.form-inp option{background:white;color:var(--text);}
+.hint{font-size:11px;color:var(--text3);margin-top:4px;}
+.hint strong{color:var(--primary);}
+
+.face-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:14px;}
+.face-slot{aspect-ratio:1;border-radius:7px;border:2px dashed var(--border2);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);overflow:hidden;position:relative;}
+.face-slot.captured{border:2px solid var(--green);}
+.face-slot canvas{width:100%;height:100%;object-fit:cover;}
+.face-tick{position:absolute;bottom:2px;right:3px;font-size:9px;color:var(--green);font-weight:800;}
+
+.prog-wrap{margin-bottom:14px;}
+.prog-lbl{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;display:flex;justify-content:space-between;}
+.prog-track{height:6px;background:var(--border);border-radius:6px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--primary),#60a5fa);transition:width .3s;}
+
+.enrolled-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rs);margin-bottom:8px;}
+.ei-num{width:30px;height:30px;border-radius:50%;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--primary);flex-shrink:0;}
+.ei-info{flex:1;min-width:0;}
+.ei-name{font-size:13px;font-weight:700;color:var(--text);}
+.ei-matric{font-size:10px;color:var(--text3);font-family:'JetBrains Mono';}
+.ei-del{background:var(--rl);color:var(--red);border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:800;}
+
+/* LOG */
+.log-row{display:flex;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);font-size:11px;margin-bottom:6px;animation:fi .25s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.log-t{font-family:'JetBrains Mono';color:var(--text3);white-space:nowrap;min-width:65px;}
+.log-m{color:var(--text2);line-height:1.5;}
+.l-ok{border-left:3px solid var(--green);} .l-ok .log-m{color:var(--green);}
+.l-err{border-left:3px solid var(--red);} .l-err .log-m{color:var(--red);}
+.l-info{border-left:3px solid var(--primary);} .l-info .log-m{color:var(--primary);}
+.l-warn{border-left:3px solid var(--amber);} .l-warn .log-m{color:var(--amber);}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;z-index:500;background:rgba(15,23,42,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s;}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal-box{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:360px;text-align:center;transform:scale(.95);transition:transform .25s;box-shadow:var(--shm);}
+.modal-bg.open .modal-box{transform:scale(1);}
+.micon{width:68px;height:68px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:30px;}
+.micon.s{background:var(--gl);} .micon.e{background:var(--rl);} .micon.en{background:var(--pl);}
+.mttl{font-size:20px;font-weight:800;margin-bottom:8px;}
+.mttl.s{color:var(--green);} .mttl.e{color:var(--red);} .mttl.en{color:var(--primary);}
+.mbody{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:20px;}
+.muser{font-size:15px;font-weight:800;color:var(--text);display:block;}
+.mdept{font-size:11px;color:var(--text3);font-weight:500;}
+.mtime{font-family:'JetBrains Mono';font-size:11px;color:var(--text3);display:block;margin-top:3px;}
+
+/* bottom safe area */
+.safe-bottom{height:var(--safe-bottom);}
+</style>
+</head>
+<body>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="ib-text">
+    Install as App
+    <small>Tap to add FaceAttend to your home screen — works offline!</small>
+  </div>
+  <button class="ib-btn" id="ib-install">Install</button>
+  <button class="ib-close" onclick="document.getElementById('install-banner').classList.remove('show')">×</button>
+</div>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="ld-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg></div>
+  <div class="ld-school">Gateway ICT Polytechnic</div>
+  <div class="ld-dept">ELECTRICAL / ELECTRONIC ENGINEERING TECHNOLOGY</div>
+  <div class="ld-bar-w">
+    <div class="ld-track"><div class="ld-fill" id="ld-bar"></div></div>
+    <div class="ld-pct" id="ld-pct">Preparing AI models...</div>
+  </div>
+  <div class="ld-steps">
+    <div class="ld-step" id="ls1"><div class="ld-dot"></div> Face Detector (TinyFaceDetector)</div>
+    <div class="ld-step" id="ls2"><div class="ld-dot"></div> Facial Landmark Model</div>
+    <div class="ld-step" id="ls3"><div class="ld-dot"></div> Face Recognition Model</div>
+    <div class="ld-step" id="ls4"><div class="ld-dot"></div> System Ready</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="hdr">
+    <div class="hdr-logo"><svg viewBox="0 0 24 24"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg></div>
+    <div class="hdr-text">
+      <div class="hdr-school">Gateway ICT Polytechnic</div>
+      <div class="hdr-dept">EEE Technology — Attendance System</div>
+    </div>
+    <div class="sys-pill"><div class="sdot amber" id="sdot"></div><span id="sys-txt">Loading</span></div>
+    <div id="clock">--:--:--</div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" id="tab-scan" onclick="switchTab('scan')">📷 Scan</div>
+  <div class="tab" id="tab-dash" onclick="switchTab('dash')">📊 Dashboard</div>
+  <div class="tab" id="tab-enroll" onclick="switchTab('enroll')">🎓 Enroll</div>
+  <div class="tab" id="tab-logs" onclick="switchTab('logs')">📋 Logs</div>
+</div>
+
+<!-- SCROLLABLE BODY -->
+<div class="app-body">
+
+  <!-- SCAN TAB -->
+  <div class="tab-pane active" id="pane-scan">
+    <div class="section">
+      <div class="pnl-hdr">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--primary)"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        <span class="pnl-ttl">Camera Feed</span>
+        <span class="cam-badge" id="cam-badge">INACTIVE</span>
+      </div>
+
+      <div class="cam-wrap">
+        <div class="cam-ph" id="cam-ph">
+          <div class="cam-ph-icon"><svg viewBox="0 0 24 24"><path d="M12 15c1.66 0 2.99-1.34 2.99-3L15 6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 15 6.7 12H5c0 3.41 2.72 6.23 6 6.72V21h2v-2.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></div>
+          <p>Camera not started</p>
+        </div>
+        <video id="video" autoplay muted playsinline webkit-playsinline x-webkit-airplay="allow"></video>
+        <canvas id="overlay-canvas"></canvas>
+        <div class="cam-info">
+          <span id="ci-faces">Faces: 0</span>
+          <span id="ci-fps">--</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-cam" onclick="toggleCamera()">▶ Start Camera</button>
+        <button class="btn btn-outline" id="btn-live" onclick="toggleLive()" disabled>◉ Live</button>
+      </div>
+
+      <div class="status-box" id="status-box">Loading AI models — please wait...</div>
+
+      <div class="conf-wrap" id="conf-wrap">
+        <div class="conf-meta"><span>Match Confidence</span><span id="conf-pct">0%</span></div>
+        <div class="conf-track"><div class="conf-fill" id="conf-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-success" id="btn-scan" onclick="scanFace()" disabled>⬡ Scan &amp; Mark Attendance</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD TAB -->
+  <div class="tab-pane" id="pane-dash">
+    <div class="section">
+      <div class="stats-grid">
+        <div class="stat-card c1"><div class="stat-lbl">Enrolled</div><div class="stat-val" id="s-total">0</div><div class="stat-sub">Registered</div></div>
+        <div class="stat-card c2"><div class="stat-lbl">Present</div><div class="stat-val" id="s-present">0</div><div class="stat-sub">Today</div></div>
+        <div class="stat-card c3"><div class="stat-lbl">Pending</div><div class="stat-val" id="s-pending">0</div><div class="stat-sub">Not scanned</div></div>
+        <div class="stat-card c4"><div class="stat-lbl">Failed</div><div class="stat-val" id="s-failed">0</div><div class="stat-sub">Unknown</div></div>
+      </div>
+      <div class="sec-hdr">
+        <div class="sec-ttl">📋 Attendance — <span id="today-lbl" style="text-transform:none;font-size:10px;color:var(--text3)"></span></div>
+        <button class="btn btn-outline" style="flex:none;padding:7px 12px;font-size:10px" onclick="exportCSV()">⤓ CSV</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Matric</th><th>Name</th><th>Level</th><th>Time</th><th>Match</th><th>Status</th></tr></thead>
+          <tbody id="att-body"><tr><td colspan="7" style="text-align:center;color:var(--text3);font-size:12px;padding:28px">No records yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENROLL TAB -->
+  <div class="tab-pane" id="pane-enroll">
+    <div class="section">
+      <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;">Enroll New Student</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Capture 5 face samples for accurate recognition. Camera must be active.</div>
+
+      <div class="form-row">
+        <label class="form-lbl">Matric Number</label>
+        <input class="form-inp" id="r-matric" placeholder="Any format — e.g. GIP/EEE/23/001" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+        <div class="hint">Type exactly as your department issues it. <strong>No fixed format enforced.</strong></div>
+      </div>
+      <div class="form-row">
+        <label class="form-lbl">Full Name</label>
+        <input class="form-inp" id="r-name" placeholder="Surname First Other Names" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label class="form-lbl">Course Option</label>
+        <select class="form-inp" id="r-option">
+          <option value="">— Select Option —</option>
+          <option>Electrical Engineering Technology</option>
+          <option>Electronic Engineering Technology</option>
+          <option>Telecommunications Engineering</option>
+          <option>Computer Engineering Technology</option>
+          <option>Instrumentation &amp; Control</option>
+          <option>Power Systems Engineering</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-lbl">Level</label>
+        <select class="form-inp" id="r-level">
+          <option value="">— Select Level —</option>
+          <option>ND 1</option><option>ND 2</option>
+          <option>HND 1</option><option>HND 2</option>
+        </select>
+      </div>
+
+      <div class="prog-wrap">
+        <div class="prog-lbl"><span>Face Samples</span><span id="cap-lbl">0 / 5 captured</span></div>
+        <div class="prog-track"><div class="prog-fill" id="cap-prog" style="width:0%"></div></div>
+      </div>
+      <div class="face-grid" id="face-grid">
+        <div class="face-slot" id="slot-0">1</div>
+        <div class="face-slot" id="slot-1">2</div>
+        <div class="face-slot" id="slot-2">3</div>
+        <div class="face-slot" id="slot-3">4</div>
+        <div class="face-slot" id="slot-4">5</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-outline" id="btn-capture" onclick="captureEnrollSample()" disabled>📷 Capture</button>
+        <button class="btn btn-success" id="btn-register" onclick="registerUser()" disabled>✓ Enroll</button>
+      </div>
+      <div class="status-box" id="reg-status">Start camera first, then capture 5 face samples.</div>
+
+      <div class="divider"></div>
+      <div class="sec-hdr">
+        <div class="sec-ttl">👥 Enrolled Students (<span id="enrolled-count">0</span>)</div>
+        <button class="btn btn-danger" style="flex:none;padding:6px 12px;font-size:10px" onclick="clearAllUsers()">Clear All</button>
+      </div>
+      <div id="enrolled-list"><div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">No students enrolled yet</div></div>
+    </div>
+  </div>
+
+  <!-- LOGS TAB -->
+  <div class="tab-pane" id="pane-logs">
+    <div class="section">
+      <div class="sec-hdr" style="margin-bottom:12px">
+        <div class="sec-ttl">System Event Log</div>
+        <button class="btn btn-outline" style="flex:none;padding:6px 12px;font-size:10px" onclick="document.getElementById('log-area').innerHTML=''">Clear</button>
+      </div>
+      <div id="log-area"></div>
+    </div>
+  </div>
+
+  <div class="safe-bottom"></div>
+</div><!-- end app-body -->
+
+<!-- MODALS -->
+<div class="modal-bg" id="m-success">
+  <div class="modal-box">
+    <div class="micon s">✅</div>
+    <div class="mttl s">Attendance Marked!</div>
+    <div class="mbody">Face recognised.<br><span class="muser" id="m-name">--</span><span class="mdept" id="m-dept"></span><span class="mtime" id="m-time">--</span></div>
+    <button class="btn btn-success" onclick="closeModal('m-success')" style="width:100%">✓ Accept</button>
+  </div>
+</div>
+<div class="modal-bg" id="m-error">
+  <div class="modal-box">
+    <div class="micon e">⚠️</div>
+    <div class="mttl e">Unknown Face</div>
+    <div class="mbody">Not recognised. Enroll this student first, or try again in better lighting.</div>
+    <button class="btn btn-danger" onclick="closeModal('m-error')" style="width:100%">Dismiss</button>
+  </div>
+</div>
+<div class="modal-bg" id="m-enrolled">
+  <div class="modal-box">
+    <div class="micon en">🎓</div>
+    <div class="mttl en">Enrolled!</div>
+    <div class="mbody">Registered in GIP EEE Attendance.<br><span class="muser" id="m-reg-name">--</span></div>
+    <button class="btn btn-primary" onclick="closeModal('m-enrolled')" style="width:100%">Done</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// Gateway ICT Polytechnic EEE — Face Recognition Attendance
+// PWA Edition — camera fix + install prompt + offline support
+// ════════════════════════════════════════════════════════════
+
+const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+let modelsLoaded=false, camStream=null, liveOn=false, liveRAF=null;
+let fpsCount=0, fpsTick=null;
+let enrollSamples=[], attendance=[], failedScans=0, faceMatcher=null;
+
+// Load DB
+let userDB = [];
+try {
+  const raw = JSON.parse(localStorage.getItem('gip_eee_v2') || '[]');
+  userDB = raw.map(u => ({...u, descriptors: u.descriptors.map(d => new Float32Array(Object.values(d)))}));
+} catch(e) { userDB=[]; }
+
+// ─── PWA Install Prompt ──────────────────────────────────
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').classList.add('show');
+});
+document.getElementById('ib-install').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const {outcome} = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner').classList.remove('show');
+  addLog('info', 'App install ' + outcome);
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').classList.remove('show');
+  addLog('ok', 'App installed to home screen!');
+});
+
+// ─── Service Worker ───────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(() => addLog('info', 'Service worker registered — offline support active'))
+    .catch(e => addLog('warn', 'SW registration failed: ' + e.message));
+}
+
+// ─── Clock ────────────────────────────────────────────────
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent = n.toTimeString().slice(0,8);
+  document.getElementById('today-lbl').textContent = n.toLocaleDateString('en-GB',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+}
+setInterval(tick,1000); tick();
+
+// ─── Load Models ─────────────────────────────────────────
+async function loadModels() {
+  const mark = (i) => ['ls1','ls2','ls3','ls4'].forEach((id,j) =>
+    document.getElementById(id).className='ld-step'+(j<i?' done':j===i?' active':''));
+  const bar = (p,t) => { document.getElementById('ld-bar').style.width=p+'%'; document.getElementById('ld-pct').textContent=t; };
+  try {
+    mark(0); bar(10,'Loading face detector...');
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    mark(1); bar(42,'Loading landmark model...');
+    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+    mark(2); bar(74,'Loading recognition model...');
+    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    mark(3); bar(100,'System ready!');
+    modelsLoaded=true; rebuildMatcher();
+    setTimeout(() => {
+      const ls=document.getElementById('loading-screen');
+      ls.style.opacity='0';
+      setTimeout(()=>ls.style.display='none',500);
+      document.getElementById('sdot').className='sdot green';
+      document.getElementById('sys-txt').textContent='Ready';
+      document.getElementById('btn-cam').disabled=false;
+      setStatus('Models loaded. Tap Start Camera to begin.','ok');
+      addLog('ok','All AI models loaded (TinyFaceDetector — fast mode)');
+      addLog('info',`${userDB.length} student(s) in database`);
+      updateStats(); renderEnrolledList();
+    },500);
+  } catch(e) {
+    document.getElementById('ld-pct').textContent='Error: '+e.message;
+    setTimeout(()=>{
+      document.getElementById('loading-screen').style.display='none';
+      setStatus('Model load failed. Check internet & reload.','err');
+    },1500);
+    addLog('err','Model load error: '+e.message);
+  }
+}
+
+function rebuildMatcher() {
+  if(!userDB.length){faceMatcher=null;return;}
+  faceMatcher = new faceapi.FaceMatcher(
+    userDB.map(u=>new faceapi.LabeledFaceDescriptors(u.matric,u.descriptors)), 0.5);
+}
+
+// ─── Camera ──────────────────────────────────────────────
+async function toggleCamera() {
+  if(camStream){stopCamera();return;}
+  const btn=document.getElementById('btn-cam');
+  btn.textContent='⏳ Starting...'; btn.disabled=true;
+  try {
+    // Try multiple camera constraint strategies for maximum mobile compatibility
+    let stream=null;
+    const strategies = [
+      // Strategy 1: environment facing (back camera — good for pointing at students)
+      {video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480}}},
+      // Strategy 2: user facing (selfie cam)
+      {video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}},
+      // Strategy 3: any camera, no constraints
+      {video:true},
+      // Strategy 4: absolute minimum
+      {video:{}}
+    ];
+    for(const c of strategies) {
+      try { stream=await navigator.mediaDevices.getUserMedia(c); break; }
+      catch(e) { continue; }
+    }
+    if(!stream) throw new Error('No camera available on this device.');
+
+    camStream=stream;
+    const vid=document.getElementById('video');
+    vid.srcObject=stream; vid.style.display='block';
+    // Ensure playback starts (required on iOS)
+    await vid.play().catch(()=>{});
+    document.getElementById('cam-ph').style.display='none';
+    document.getElementById('cam-badge').textContent='LIVE';
+    document.getElementById('cam-badge').classList.add('live');
+    btn.textContent='■ Stop Camera'; btn.disabled=false;
+    btn.className='btn btn-outline';
+    document.getElementById('btn-scan').disabled=false;
+    document.getElementById('btn-live').disabled=false;
+    document.getElementById('btn-capture').disabled=false;
+    document.getElementById('sdot').className='sdot green';
+    document.getElementById('sys-txt').textContent='Cam Live';
+    setStatus('Camera active. Tap Scan & Mark Attendance.','info');
+    addLog('info','Camera started — '+stream.getVideoTracks()[0].label);
+    startFPS();
+  } catch(e) {
+    btn.textContent='▶ Start Camera'; btn.disabled=false;
+    let msg=e.message;
+    if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError'){
+      msg='Camera permission denied.\n\n' +
+          '📱 Android Chrome: tap the 🔒 icon in the address bar → Site Settings → Camera → Allow.\n\n' +
+          '🍎 iPhone Safari: Settings app → Safari → Camera → Allow.\n\n' +
+          '⚠️ IMPORTANT: You must open this file from a web server (https://) not from Downloads. See the README for hosting instructions.';
+    } else if(e.name==='NotFoundError'){
+      msg='No camera found on this device.';
+    } else if(e.name==='NotReadableError'||e.name==='AbortError'){
+      msg='Camera is in use by another app. Close other camera apps and try again.';
+    }
+    setStatus(msg,'err');
+    addLog('err','Camera error ['+e.name+']: '+e.message);
+  }
+}
+
+function stopCamera(){
+  if(liveOn)stopLive();
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  const vid=document.getElementById('video');
+  vid.style.display='none'; vid.srcObject=null;
+  document.getElementById('cam-ph').style.display='flex';
+  document.getElementById('cam-badge').textContent='INACTIVE';
+  document.getElementById('cam-badge').classList.remove('live');
+  document.getElementById('btn-cam').textContent='▶ Start Camera';
+  document.getElementById('btn-cam').className='btn btn-primary';
+  document.getElementById('btn-scan').disabled=true;
+  document.getElementById('btn-live').disabled=true;
+  document.getElementById('btn-capture').disabled=true;
+  document.getElementById('ci-faces').textContent='Faces: 0';
+  clearCanvas(); setStatus('Camera stopped.','warn');
+  addLog('warn','Camera stopped'); stopFPS();
+}
+
+function startFPS(){fpsTick=setInterval(()=>{document.getElementById('ci-fps').textContent=fpsCount+'fps';fpsCount=0;},1000);}
+function stopFPS(){clearInterval(fpsTick);document.getElementById('ci-fps').textContent='--';}
+
+function sizeCanvas(){const w=document.querySelector('.cam-wrap');const c=document.getElementById('overlay-canvas');c.width=w.clientWidth;c.height=w.clientHeight;}
+function clearCanvas(){const c=document.getElementById('overlay-canvas');c.getContext('2d').clearRect(0,0,c.width,c.height);}
+function drawBox(ctx,box,label,color){
+  ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.strokeRect(box.x,box.y,box.width,box.height);
+  ctx.fillStyle=color;const tw=ctx.measureText(label).width;
+  ctx.fillRect(box.x,box.y-22,tw+16,20);
+  ctx.fillStyle='white';ctx.font='bold 11px "Plus Jakarta Sans",sans-serif';
+  ctx.fillText(label,box.x+8,box.y-7);
+}
+
+function toggleLive(){if(liveOn)stopLive();else startLive();}
+function startLive(){liveOn=true;document.getElementById('btn-live').textContent='◉ Stop Live';document.getElementById('btn-live').className='btn btn-danger';addLog('info','Live detection ON');liveLoop();}
+function stopLive(){liveOn=false;if(liveRAF)cancelAnimationFrame(liveRAF);document.getElementById('btn-live').textContent='◉ Live';document.getElementById('btn-live').className='btn btn-outline';clearCanvas();addLog('info','Live detection OFF');}
+async function liveLoop(){
+  if(!liveOn||!camStream)return;
+  const vid=document.getElementById('video');sizeCanvas();
+  const opts=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.5});
+  const dets=await faceapi.detectAllFaces(vid,opts).withFaceLandmarks(true);
+  fpsCount++;
+  document.getElementById('ci-faces').textContent='Faces: '+dets.length;
+  const c=document.getElementById('overlay-canvas'),ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  const dims=faceapi.matchDimensions(c,{width:c.width,height:c.height},true);
+  faceapi.resizeResults(dets,dims).forEach(d=>drawBox(ctx,d.detection.box,'Face Detected','rgba(26,86,219,0.85)'));
+  if(liveOn)liveRAF=requestAnimationFrame(liveLoop);
+}
+
+// ─── Scan ────────────────────────────────────────────────
+async function scanFace(){
+  if(!camStream){setStatus('Start camera first.','err');return;}
+  if(!modelsLoaded){setStatus('Models loading...','warn');return;}
+  const btn=document.getElementById('btn-scan');
+  btn.disabled=true;btn.textContent='⏳ Scanning...';
+  setStatus('Scanning...','info');
+  document.getElementById('conf-wrap').classList.remove('show');
+  const vid=document.getElementById('video');sizeCanvas();
+  const c=document.getElementById('overlay-canvas'),ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  try {
+    const opts=new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.5});
+    const det=await faceapi.detectSingleFace(vid,opts).withFaceLandmarks(true).withFaceDescriptor();
+    if(!det){setStatus('No face detected. Position face clearly in frame.','warn');addLog('warn','Scan: no face detected');btn.disabled=false;btn.textContent='⬡ Scan & Mark Attendance';return;}
+    const dims=faceapi.matchDimensions(c,{width:c.width,height:c.height},true);
+    const res=faceapi.resizeResults(det,dims);const box=res.detection.box;
+    if(!faceMatcher||!userDB.length){
+      setStatus('No students enrolled. Go to Enroll tab first.','err');
+      drawBox(ctx,box,'No DB','#c0392b');btn.disabled=false;btn.textContent='⬡ Scan & Mark Attendance';return;
+    }
+    const match=faceMatcher.findBestMatch(det.descriptor);
+    const conf=Math.round((1-match.distance)*100);
+    document.getElementById('conf-wrap').classList.add('show');
+    document.getElementById('conf-pct').textContent=conf+'%';
+    document.getElementById('conf-fill').style.width=conf+'%';
+    if(match.label==='unknown'){
+      failedScans++;document.getElementById('s-failed').textContent=failedScans;
+      drawBox(ctx,box,'Unknown — '+conf+'%','#c0392b');
+      setStatus('Face not recognised. Enroll student first.','err');
+      addLog('err',`No match — conf:${conf}%, dist:${match.distance.toFixed(3)}`);
+      openModal('m-error');
+    } else {
+      const user=userDB.find(u=>u.matric===match.label);
+      if(!user){setStatus('DB error.','err');btn.disabled=false;btn.textContent='⬡ Scan & Mark Attendance';return;}
+      if(attendance.find(a=>a.matric===user.matric)){
+        setStatus(`${user.name} already marked present.`,'warn');
+        addLog('warn',`Duplicate: ${user.name} (${user.matric})`);
+        drawBox(ctx,box,user.name.split(' ')[0]+' ✓ (already)','#b45309');
+        btn.disabled=false;btn.textContent='⬡ Scan & Mark Attendance';return;
+      }
+      const now=new Date(),ts=now.toTimeString().slice(0,8);
+      const status=now.getHours()>=8?'LATE':'PRESENT';
+      attendance.push({...user,time:ts,conf:conf+'%',status});
+      updateStats();renderTable();
+      drawBox(ctx,box,user.name.split(' ')[0]+' ✓','#0a8f5c');
+      setStatus(`✓ ${user.name} — ${conf}% match — Attendance marked!`,'ok');
+      addLog('ok',`MATCH [${conf}%] ${user.name} | ${user.matric}`);
+      document.getElementById('m-name').textContent=user.name;
+      document.getElementById('m-dept').textContent=user.option+' · '+user.level;
+      document.getElementById('m-time').textContent='Checked in at '+ts;
+      openModal('m-success');
+    }
+  } catch(e){setStatus('Scan error: '+e.message,'err');addLog('err','Scan: '+e.message);}
+  btn.disabled=false;btn.textContent='⬡ Scan & Mark Attendance';
+}
+
+// ─── Enroll ───────────────────────────────────────────────
+async function captureEnrollSample(){
+  if(!camStream||!modelsLoaded){setRegStatus('Start camera first.','err');return;}
+  setRegStatus('Detecting face...','info');
+  const vid=document.getElementById('video');
+  const opts=new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.6});
+  try {
+    const det=await faceapi.detectSingleFace(vid,opts).withFaceLandmarks(true).withFaceDescriptor();
+    if(!det){setRegStatus('No face detected. Centre your face and retry.','err');return;}
+    enrollSamples.push(det.descriptor);
+    const idx=enrollSamples.length-1;
+    const slot=document.getElementById('slot-'+idx);
+    const tmp=document.createElement('canvas');tmp.width=80;tmp.height=80;
+    const box=det.detection.box;
+    tmp.getContext('2d').drawImage(vid,box.x,box.y,box.width,box.height,0,0,80,80);
+    slot.innerHTML='';slot.appendChild(tmp);
+    const tick=document.createElement('div');tick.className='face-tick';tick.textContent='✓';slot.appendChild(tick);
+    slot.classList.add('captured');
+    document.getElementById('cap-lbl').textContent=enrollSamples.length+' / 5 captured';
+    document.getElementById('cap-prog').style.width=(enrollSamples.length/5*100)+'%';
+    if(enrollSamples.length>=5){document.getElementById('btn-register').disabled=false;setRegStatus('5 samples captured! Fill details and tap Enroll.','ok');}
+    else setRegStatus(`Sample ${enrollSamples.length}/5. Slightly move head and capture again.`,'info');
+    addLog('info',`Enrol sample ${enrollSamples.length}/5`);
+  } catch(e){setRegStatus('Error: '+e.message,'err');}
+}
+
+function registerUser(){
+  const matric=document.getElementById('r-matric').value.trim();
+  const name=document.getElementById('r-name').value.trim();
+  const option=document.getElementById('r-option').value;
+  const level=document.getElementById('r-level').value;
+  if(!matric){setRegStatus('Enter matric number.','err');return;}
+  if(!name){setRegStatus('Enter student full name.','err');return;}
+  if(!option){setRegStatus('Select a course option.','err');return;}
+  if(!level){setRegStatus('Select the level.','err');return;}
+  if(enrollSamples.length<5){setRegStatus('Capture all 5 face samples first.','err');return;}
+  if(userDB.find(u=>u.matric.toLowerCase()===matric.toLowerCase())){setRegStatus('Matric "'+matric+'" already enrolled.','err');return;}
+  userDB.push({matric,name,option,level,descriptors:enrollSamples.slice()});
+  saveDB();rebuildMatcher();updateStats();renderEnrolledList();
+  addLog('ok',`ENROLLED: ${name} | ${matric} | ${option} | ${level}`);
+  document.getElementById('m-reg-name').textContent=matric+' — '+name;
+  openModal('m-enrolled');resetEnrollForm();
+}
+
+function resetEnrollForm(){
+  ['r-matric','r-name'].forEach(id=>document.getElementById(id).value='');
+  ['r-option','r-level'].forEach(id=>document.getElementById(id).value='');
+  enrollSamples=[];
+  document.getElementById('cap-lbl').textContent='0 / 5 captured';
+  document.getElementById('cap-prog').style.width='0%';
+  document.getElementById('btn-register').disabled=true;
+  for(let i=0;i<5;i++){const s=document.getElementById('slot-'+i);s.innerHTML=String(i+1);s.classList.remove('captured');}
+  setRegStatus('Capture 5 face samples to enroll another student.','');
+}
+
+function saveDB(){
+  try{localStorage.setItem('gip_eee_v2',JSON.stringify(userDB.map(u=>({...u,descriptors:u.descriptors.map(d=>Array.from(d))}))));}
+  catch(e){addLog('warn','Storage save failed: '+e.message);}
+}
+function clearAllUsers(){if(!confirm('Delete ALL enrolled students?'))return;userDB=[];localStorage.removeItem('gip_eee_v2');rebuildMatcher();updateStats();renderEnrolledList();addLog('warn','All users deleted');}
+function deleteUser(matric){if(!confirm('Remove '+matric+'?'))return;userDB=userDB.filter(u=>u.matric!==matric);saveDB();rebuildMatcher();updateStats();renderEnrolledList();addLog('warn','Removed: '+matric);}
+
+function renderEnrolledList(){
+  document.getElementById('enrolled-count').textContent=userDB.length;
+  const el=document.getElementById('enrolled-list');
+  if(!userDB.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">No students enrolled yet</div>';return;}
+  el.innerHTML=userDB.map((u,i)=>`
+    <div class="enrolled-item">
+      <div class="ei-num">${i+1}</div>
+      <div class="ei-info"><div class="ei-name">${u.name}</div><div class="ei-matric">${u.matric} · ${u.level}</div></div>
+      <button class="ei-del" onclick="deleteUser('${u.matric}')">✕</button>
+    </div>`).join('');
+}
+
+function updateStats(){
+  document.getElementById('s-total').textContent=userDB.length;
+  document.getElementById('s-present').textContent=attendance.length;
+  document.getElementById('s-pending').textContent=Math.max(0,userDB.length-attendance.length);
+  document.getElementById('s-failed').textContent=failedScans;
+}
+function renderTable(){
+  const tb=document.getElementById('att-body');
+  if(!attendance.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);font-size:12px;padding:28px">No records yet</td></tr>';return;}
+  tb.innerHTML=attendance.map((r,i)=>`
+    <tr><td>${i+1}</td><td class="mono">${r.matric}</td><td style="font-weight:600">${r.name}</td>
+    <td style="font-size:11px;color:var(--text2)">${r.level}</td>
+    <td class="mono">${r.time}</td><td class="mono">${r.conf}</td>
+    <td><span class="badge ${r.status==='PRESENT'?'b-present':'b-late'}">${r.status}</span></td></tr>`).join('');
+}
+function exportCSV(){
+  const d=new Date().toLocaleDateString('en-GB');
+  let csv=`Gateway ICT Polytechnic - EEE Attendance\nDate: ${d}\n\n`;
+  csv+='No,Matric,Name,Course Option,Level,Time In,Match%,Status\n';
+  csv+=attendance.map((r,i)=>`${i+1},"${r.matric}","${r.name}","${r.option}","${r.level}",${r.time},${r.conf},${r.status}`).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`GIP_EEE_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  addLog('info','CSV exported');
+}
+
+function switchTab(t){
+  ['scan','dash','enroll','logs'].forEach(id=>{
+    document.getElementById('tab-'+id).classList.toggle('active',id===t);
+    document.getElementById('pane-'+id).classList.toggle('active',id===t);
+  });
+}
+function setStatus(m,t=''){const b=document.getElementById('status-box');b.textContent=m;b.className='status-box '+t;}
+function setRegStatus(m,t=''){const b=document.getElementById('reg-status');b.textContent=m;b.className='status-box '+t;}
+function addLog(type,msg){
+  const a=document.getElementById('log-area');
+  const t=new Date().toTimeString().slice(0,8);
+  const d=document.createElement('div');d.className='log-row l-'+type;
+  d.innerHTML=`<span class="log-t">[${t}]</span><span class="log-m">${msg}</span>`;
+  a.prepend(d);
+}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+window.addEventListener('load',()=>{
+  const chk=setInterval(()=>{if(typeof faceapi!=='undefined'){clearInterval(chk);loadModels();}},150);
+  updateStats();
+});
+</script>
+</body>
+</html>
